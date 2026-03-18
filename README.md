@@ -43,5 +43,8 @@ Make sure you have Node.js and NPM installed.
 - Math Engine: KaTeX
 - PDF Engine: jsPDF + svg2pdf.js + html2canvas
 
+## Future Work
+- **Smart Text Formatting:** Implement automatic font size scaling and multi-line text wrapping depending on the length of the question/answer text to gracefully handle very long inputs on the puzzle edges.
+
 ## Deployment
 This project is configured and ready to be deployed as a static site to Cloudflare Pages (or similar providers like Vercel/Netlify). The build output goes strictly into the `/dist` directory.
