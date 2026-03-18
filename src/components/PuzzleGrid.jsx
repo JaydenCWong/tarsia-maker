@@ -164,11 +164,17 @@ function EdgeText({ text, x, y, angle, className, edgeLen }) {
     let fontSize = Math.min(0.1, edgeLen * 0.1);
     let charsPerLine = 12;
 
-    if (textLength > 30) {
-      fontSize *= 0.6;
-      charsPerLine = 22;
+    if (textLength > 60) {
+      fontSize *= 0.3;
+      charsPerLine = 50;
+    } else if (textLength > 45) {
+      fontSize *= 0.4;
+      charsPerLine = 40;
+    } else if (textLength > 30) {
+      fontSize *= 0.5;
+      charsPerLine = 28;
     } else if (textLength > 15) {
-      fontSize *= 0.8;
+      fontSize *= 0.7;
       charsPerLine = 16;
     }
 
@@ -221,8 +227,10 @@ function EdgeText({ text, x, y, angle, className, edgeLen }) {
   const html = renderLatexToHTML(text);
 
   let foFontSize = 18;
-  if (textLength > 40) foFontSize = 12;
-  else if (textLength > 20) foFontSize = 15;
+  if (textLength > 60) foFontSize = 6;
+  else if (textLength > 45) foFontSize = 9;
+  else if (textLength > 30) foFontSize = 11;
+  else if (textLength > 15) foFontSize = 14;
 
   return (
     <g transform={`translate(${x}, ${y}) rotate(${angle}) scale(${scale})`}>
