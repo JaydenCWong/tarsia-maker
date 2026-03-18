@@ -44,14 +44,16 @@ function PuzzleGrid({ puzzleType, edgeContent }) {
       // Dynamic padding: If the string is very long, we push it less distance into the
       // center to prevent long strings on adjacent edges from colliding.
       let qOffset = 0.125;
-      if (content.question.length > 50) qOffset = 0.04;
-      else if (content.question.length > 30) qOffset = 0.06;
-      else if (content.question.length > 15) qOffset = 0.09;
+      if (content.question.length > 60) qOffset = -0.01;
+      else if (content.question.length > 40) qOffset = 0.02;
+      else if (content.question.length > 25) qOffset = 0.05;
+      else if (content.question.length > 15) qOffset = 0.08;
 
       let aOffset = 0.105;
-      if (content.answer.length > 50) aOffset = 0.03;
-      else if (content.answer.length > 30) aOffset = 0.05;
-      else if (content.answer.length > 15) aOffset = 0.08;
+      if (content.answer.length > 60) aOffset = -0.02;
+      else if (content.answer.length > 40) aOffset = 0.01;
+      else if (content.answer.length > 25) aOffset = 0.04;
+      else if (content.answer.length > 15) aOffset = 0.07;
 
       const qPos = getEdgeTextPosition(edge.v1, edge.v2, piece1.vertices, qOffset);
       const aPos = getEdgeTextPosition(edge.v1, edge.v2, piece2.vertices, aOffset);
