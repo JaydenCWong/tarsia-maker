@@ -39,21 +39,12 @@ function PuzzleGrid({ puzzleType, edgeContent }) {
       const piece1 = pieces.find(p => p.id === edge.piece1);
       const piece2 = pieces.find(p => p.id === edge.piece2);
 
-      // Q is offset toward piece1's center, A toward piece2's center
-      // Use balanced offset so text is centered between edge and triangle center.
-      // Dynamic padding: If the string is very long, we push it less distance into the
-      // center to prevent long strings on adjacent edges from colliding.
-      let qOffset = 0.125;
-      if (content.question.length > 60) qOffset = -0.01;
-      else if (content.question.length > 40) qOffset = 0.02;
-      else if (content.question.length > 25) qOffset = 0.05;
-      else if (content.question.length > 15) qOffset = 0.08;
-
-      let aOffset = 0.105;
-      if (content.answer.length > 60) aOffset = -0.02;
-      else if (content.answer.length > 40) aOffset = 0.01;
-      else if (content.answer.length > 25) aOffset = 0.04;
-      else if (content.answer.length > 15) aOffset = 0.07;
+      // Q is offset toward piece1's center, A toward piece2's center.
+      // Smooth dynamic padding: longer text → smaller offset → text stays closer to the edge.
+      const qLen = content.question.length || 1;
+      const aLen = content.answer.length || 1;
+      const qOffset = 0.125 * Math.max(0.3, Math.min(1.0, 12 / qLen));
+      const aOffset = 0.105 * Math.max(0.3, Math.min(1.0, 12 / aLen));
 
       const qPos = getEdgeTextPosition(edge.v1, edge.v2, piece1.vertices, qOffset);
       const aPos = getEdgeTextPosition(edge.v1, edge.v2, piece2.vertices, aOffset);
@@ -148,6 +139,11 @@ function PuzzleGrid({ puzzleType, edgeContent }) {
 /**
  * Renders text along an edge. Uses SVG <text> for plain text,
  * and a scaled <foreignObject> for LaTeX content.
+ *
+ * Font sizing uses a smooth continuous formula:
+ *   fontSize = clamp(edgeLen * 0.6 / textLength, minSize, maxSize)
+ * This ensures the text always fits along the edge proportionally,
+ * rather than jumping between discrete thresholds.
  */
 function EdgeText({ text, x, y, angle, className, edgeLen }) {
   if (!text) return null;
@@ -156,44 +152,43 @@ function EdgeText({ text, x, y, angle, className, edgeLen }) {
   const isQuestion = className.includes('question');
   const fillColor = isQuestion ? '#2c3e50' : '#c0392b';
 
-  // Dynamic font sizing based on length
   const textLength = text.length;
 
   if (!hasLatex) {
-    // ---- Plain Text: SVG <text> with manual <tspan> wrapping and scaling ----
-    let fontSize = Math.min(0.1, edgeLen * 0.1);
-    let charsPerLine = 12;
+    // ---- Plain Text: SVG <text> with smooth font scaling ----
+    const maxFontSize = Math.min(0.1, edgeLen * 0.1);
+    const minFontSize = maxFontSize * 0.25;
 
-    if (textLength > 60) {
-      fontSize *= 0.3;
-      charsPerLine = 50;
-    } else if (textLength > 45) {
-      fontSize *= 0.4;
-      charsPerLine = 40;
-    } else if (textLength > 30) {
-      fontSize *= 0.5;
-      charsPerLine = 28;
-    } else if (textLength > 15) {
-      fontSize *= 0.7;
-      charsPerLine = 16;
-    }
+    // Smooth scaling: font shrinks proportionally to text length.
+    // The constant 8 means text of ~8 chars gets full size; longer text shrinks.
+    const fontSize = Math.max(minFontSize, Math.min(maxFontSize, edgeLen * 0.6 / textLength));
 
+    // Characters-per-line derived from edge length and font size.
+    // This keeps text within roughly 80% of the edge width.
+    const charsPerLine = Math.max(8, Math.floor(edgeLen * 0.8 / fontSize));
+
+    // Word-wrap into lines
     const words = text.split(' ');
     const lines = [];
     let currentLine = '';
 
     for (const word of words) {
-      // If adding the word exceeds charsPerLine, push to lines
-      if (currentLine && (currentLine + word).length > charsPerLine) {
+      if (currentLine && (currentLine + ' ' + word).length > charsPerLine) {
         lines.push(currentLine.trim());
         currentLine = word + ' ';
       } else {
-        currentLine += word + ' ';
+        currentLine += (currentLine ? ' ' : '') + word;
       }
     }
     if (currentLine) lines.push(currentLine.trim());
 
-    // Fallback if no lines (empty string handled by initial !text check)
+    // Cap at 3 lines max — if more, merge the overflow into line 3
+    if (lines.length > 3) {
+      const merged = lines.slice(2).join(' ');
+      lines.length = 2;
+      lines.push(merged);
+    }
+
     if (lines.length === 0) lines.push(text);
 
     return (
@@ -210,7 +205,6 @@ function EdgeText({ text, x, y, angle, className, edgeLen }) {
         fontWeight="500"
       >
         {lines.map((line, i) => {
-          // Calculate vertical offset so block of text remains vertically centered
           const dy = i === 0 ? `-${(lines.length - 1) * 0.5}em` : '1em';
           return (
             <tspan key={i} x={x} dy={dy}>
@@ -222,15 +216,13 @@ function EdgeText({ text, x, y, angle, className, edgeLen }) {
     );
   }
 
-  // ---- LaTeX Content: foreignObject with scaling trick ----
+  // ---- LaTeX Content: foreignObject with smooth font scaling ----
   const scale = 1 / SCALE_FACTOR;
   const html = renderLatexToHTML(text);
 
-  let foFontSize = 18;
-  if (textLength > 60) foFontSize = 6;
-  else if (textLength > 45) foFontSize = 9;
-  else if (textLength > 30) foFontSize = 11;
-  else if (textLength > 15) foFontSize = 14;
+  // Smooth scaling: base 18px shrinks proportionally for longer expressions.
+  // The constant 10 means LaTeX of ~10 chars gets full 18px; longer shrinks.
+  const foFontSize = Math.max(8, Math.min(18, 180 / textLength));
 
   return (
     <g transform={`translate(${x}, ${y}) rotate(${angle}) scale(${scale})`}>
@@ -249,7 +241,7 @@ function EdgeText({ text, x, y, angle, className, edgeLen }) {
             fontSize: `${foFontSize}px`, 
             width: '100%', 
             height: '100%',
-            whiteSpace: 'normal',   // allow wrapping inside the flexbox
+            whiteSpace: 'normal',
             wordBreak: 'break-word',
             textAlign: 'center',
             lineHeight: '1.2'
