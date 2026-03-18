@@ -182,10 +182,10 @@ function EdgeText({ text, x, y, angle, className, edgeLen }) {
     }
     if (currentLine) lines.push(currentLine.trim());
 
-    // Cap at 3 lines max — if more, merge the overflow into line 3
-    if (lines.length > 3) {
-      const merged = lines.slice(2).join(' ');
-      lines.length = 2;
+    // Cap at 2 lines max — a third line collides with the triangle edge
+    if (lines.length > 2) {
+      const merged = lines.slice(1).join(' ');
+      lines.length = 1;
       lines.push(merged);
     }
 
