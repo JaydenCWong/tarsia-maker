@@ -40,11 +40,11 @@ function PuzzleGrid({ puzzleType, edgeContent }) {
       const piece2 = pieces.find(p => p.id === edge.piece2);
 
       // Q is offset toward piece1's center, A toward piece2's center.
-      // Smooth dynamic padding: longer text → smaller offset → text stays closer to the edge.
+      // Smooth sqrt-based padding: longer text → smaller offset → text stays closer to edge.
       const qLen = content.question.length || 1;
       const aLen = content.answer.length || 1;
-      const qOffset = 0.125 * Math.max(0.3, Math.min(1.0, 12 / qLen));
-      const aOffset = 0.105 * Math.max(0.3, Math.min(1.0, 12 / aLen));
+      const qOffset = 0.125 * Math.max(0.35, Math.min(1.0, Math.sqrt(10 / qLen)));
+      const aOffset = 0.105 * Math.max(0.35, Math.min(1.0, Math.sqrt(10 / aLen)));
 
       const qPos = getEdgeTextPosition(edge.v1, edge.v2, piece1.vertices, qOffset);
       const aPos = getEdgeTextPosition(edge.v1, edge.v2, piece2.vertices, aOffset);
@@ -140,10 +140,10 @@ function PuzzleGrid({ puzzleType, edgeContent }) {
  * Renders text along an edge. Uses SVG <text> for plain text,
  * and a scaled <foreignObject> for LaTeX content.
  *
- * Font sizing uses a smooth continuous formula:
- *   fontSize = clamp(edgeLen * 0.6 / textLength, minSize, maxSize)
- * This ensures the text always fits along the edge proportionally,
- * rather than jumping between discrete thresholds.
+ * Font sizing uses a gentle sqrt-based decay:
+ *   fontSize = maxSize * sqrt(referenceLength / textLength)
+ * sqrt decays much more gently than 1/x, keeping text readable
+ * even at longer lengths while still shrinking proportionally.
  */
 function EdgeText({ text, x, y, angle, className, edgeLen }) {
   if (!text) return null;
@@ -157,11 +157,11 @@ function EdgeText({ text, x, y, angle, className, edgeLen }) {
   if (!hasLatex) {
     // ---- Plain Text: SVG <text> with smooth font scaling ----
     const maxFontSize = Math.min(0.1, edgeLen * 0.1);
-    const minFontSize = maxFontSize * 0.25;
+    const minFontSize = maxFontSize * 0.3;
 
-    // Smooth scaling: font shrinks proportionally to text length.
-    // The constant 8 means text of ~8 chars gets full size; longer text shrinks.
-    const fontSize = Math.max(minFontSize, Math.min(maxFontSize, edgeLen * 0.6 / textLength));
+    // Gentle sqrt decay: text of ~8 chars gets full size; longer text shrinks gradually.
+    // sqrt(8/20) ≈ 0.63, sqrt(8/40) ≈ 0.45, sqrt(8/60) ≈ 0.37 — much gentler than 1/x.
+    const fontSize = Math.max(minFontSize, Math.min(maxFontSize, maxFontSize * Math.sqrt(8 / textLength)));
 
     // Characters-per-line derived from edge length and font size.
     // This keeps text within roughly 80% of the edge width.
@@ -220,9 +220,8 @@ function EdgeText({ text, x, y, angle, className, edgeLen }) {
   const scale = 1 / SCALE_FACTOR;
   const html = renderLatexToHTML(text);
 
-  // Smooth scaling: base 18px shrinks proportionally for longer expressions.
-  // The constant 10 means LaTeX of ~10 chars gets full 18px; longer shrinks.
-  const foFontSize = Math.max(8, Math.min(18, 180 / textLength));
+  // Gentle sqrt decay: LaTeX of ~10 chars gets full 18px; longer shrinks gradually.
+  const foFontSize = Math.max(10, Math.min(18, 18 * Math.sqrt(10 / textLength)));
 
   return (
     <g transform={`translate(${x}, ${y}) rotate(${angle}) scale(${scale})`}>
