@@ -40,9 +40,19 @@ function PuzzleGrid({ puzzleType, edgeContent }) {
       const piece2 = pieces.find(p => p.id === edge.piece2);
 
       // Q is offset toward piece1's center, A toward piece2's center
-      // Use balanced offset so text is centered between edge and triangle center
-      const qPos = getEdgeTextPosition(edge.v1, edge.v2, piece1.vertices, 0.125);
-      const aPos = getEdgeTextPosition(edge.v1, edge.v2, piece2.vertices, 0.105);
+      // Use balanced offset so text is centered between edge and triangle center.
+      // Dynamic padding: If the string is very long, we push it less distance into the
+      // center to prevent long strings on adjacent edges from colliding.
+      let qOffset = 0.125;
+      if (content.question.length > 30) qOffset = 0.08;
+      else if (content.question.length > 15) qOffset = 0.1;
+
+      let aOffset = 0.105;
+      if (content.answer.length > 30) aOffset = 0.07;
+      else if (content.answer.length > 15) aOffset = 0.09;
+
+      const qPos = getEdgeTextPosition(edge.v1, edge.v2, piece1.vertices, qOffset);
+      const aPos = getEdgeTextPosition(edge.v1, edge.v2, piece2.vertices, aOffset);
 
       const angle = getEdgeAngle(edge.v1, edge.v2);
       let textAngle = angle;
