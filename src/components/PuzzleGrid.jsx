@@ -41,10 +41,11 @@ function PuzzleGrid({ puzzleType, edgeContent }) {
 
       // Q is offset toward piece1's center, A toward piece2's center.
       // Smooth sqrt-based padding: longer text → smaller offset → text stays closer to edge.
+      // Min clamp of 0.55 ensures even long text doesn't touch the triangle boundary.
       const qLen = content.question.length || 1;
       const aLen = content.answer.length || 1;
-      const qOffset = 0.125 * Math.max(0.35, Math.min(1.0, Math.sqrt(10 / qLen)));
-      const aOffset = 0.105 * Math.max(0.35, Math.min(1.0, Math.sqrt(10 / aLen)));
+      const qOffset = 0.125 * Math.max(0.55, Math.min(1.0, Math.sqrt(10 / qLen)));
+      const aOffset = 0.105 * Math.max(0.55, Math.min(1.0, Math.sqrt(10 / aLen)));
 
       const qPos = getEdgeTextPosition(edge.v1, edge.v2, piece1.vertices, qOffset);
       const aPos = getEdgeTextPosition(edge.v1, edge.v2, piece2.vertices, aOffset);
