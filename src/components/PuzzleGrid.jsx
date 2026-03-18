@@ -142,8 +142,40 @@ function EdgeText({ text, x, y, angle, className, edgeLen }) {
   const isQuestion = className.includes('question');
   const fillColor = isQuestion ? '#2c3e50' : '#c0392b';
 
+  // Dynamic font sizing based on length
+  const textLength = text.length;
+
   if (!hasLatex) {
-    // Plain text — use SVG <text> directly
+    // ---- Plain Text: SVG <text> with manual <tspan> wrapping and scaling ----
+    let fontSize = Math.min(0.1, edgeLen * 0.1);
+    let charsPerLine = 12;
+
+    if (textLength > 30) {
+      fontSize *= 0.6;
+      charsPerLine = 22;
+    } else if (textLength > 15) {
+      fontSize *= 0.8;
+      charsPerLine = 16;
+    }
+
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = '';
+
+    for (const word of words) {
+      // If adding the word exceeds charsPerLine, push to lines
+      if (currentLine && (currentLine + word).length > charsPerLine) {
+        lines.push(currentLine.trim());
+        currentLine = word + ' ';
+      } else {
+        currentLine += word + ' ';
+      }
+    }
+    if (currentLine) lines.push(currentLine.trim());
+
+    // Fallback if no lines (empty string handled by initial !text check)
+    if (lines.length === 0) lines.push(text);
+
     return (
       <text
         x={x}
@@ -152,19 +184,31 @@ function EdgeText({ text, x, y, angle, className, edgeLen }) {
         dominantBaseline="central"
         className={`edge-text ${className}`}
         transform={`rotate(${angle}, ${x}, ${y})`}
-        fontSize={Math.min(0.1, edgeLen * 0.1)}
+        fontSize={fontSize}
         fill={fillColor}
         fontFamily="'Inter', sans-serif"
         fontWeight="500"
       >
-        {text}
+        {lines.map((line, i) => {
+          // Calculate vertical offset so block of text remains vertically centered
+          const dy = i === 0 ? `-${(lines.length - 1) * 0.5}em` : '1em';
+          return (
+            <tspan key={i} x={x} dy={dy}>
+              {line}
+            </tspan>
+          );
+        })}
       </text>
     );
   }
 
-  // LaTeX content — use foreignObject with scaling trick
+  // ---- LaTeX Content: foreignObject with scaling trick ----
   const scale = 1 / SCALE_FACTOR;
   const html = renderLatexToHTML(text);
+
+  let foFontSize = 18;
+  if (textLength > 40) foFontSize = 12;
+  else if (textLength > 20) foFontSize = 15;
 
   return (
     <g transform={`translate(${x}, ${y}) rotate(${angle}) scale(${scale})`}>
@@ -178,7 +222,16 @@ function EdgeText({ text, x, y, angle, className, edgeLen }) {
         <div
           xmlns="http://www.w3.org/1999/xhtml"
           className={`edge-label-html ${className}`}
-          style={{ color: fillColor, fontSize: '18px', width: '100%', height: '100%' }}
+          style={{ 
+            color: fillColor, 
+            fontSize: `${foFontSize}px`, 
+            width: '100%', 
+            height: '100%',
+            whiteSpace: 'normal',   // allow wrapping inside the flexbox
+            wordBreak: 'break-word',
+            textAlign: 'center',
+            lineHeight: '1.2'
+          }}
           dangerouslySetInnerHTML={{ __html: html }}
         />
       </foreignObject>
